@@ -6,6 +6,20 @@
   - (placeholder)
 
 - **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.1] - 2026-07-12
+
+- **Added**
+  - (placeholder)
+
+- **Changed**
   - Access-token JWTs now use and require RFC 9068 `typ: at+jwt`.
   - DPoP-required configuration now fails closed instead of advertising an
     incomplete RFC 9449 implementation.
@@ -24,3 +38,4 @@
 
 
 [0.1.0]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.0
+[0.1.1]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.1
