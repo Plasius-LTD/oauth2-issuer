@@ -78,6 +78,10 @@ describe("@plasius/oauth2-issuer", () => {
       codeVerifier: verifier,
     });
     expect("access_token" in token).toBe(true);
+    if ("access_token" in token) {
+      const header = JSON.parse(Buffer.from(token.access_token.split(".")[0]!, "base64url").toString("utf8"));
+      expect(header.typ).toBe("at+jwt");
+    }
 
     const replay = await issuer.token({
       grantType: "authorization_code",
@@ -107,6 +111,50 @@ describe("@plasius/oauth2-issuer", () => {
         consentAccepted: true,
       }),
     ).rejects.toThrow(/Unregistered redirect/);
+  });
+
+  it("uses unsupported_response_type for an unsupported authorization response", async () => {
+    const { issuer, config } = createIssuer();
+    const client = await issuer.registerClient({ redirect_uris: ["https://client.example/callback"] });
+    const result = await issuer.authorize({
+      responseType: "token",
+      clientId: client.clientId,
+      redirectUri: client.metadata.redirect_uris[0]!,
+      scope: "mcp:access",
+      resource: config.resource,
+      codeChallenge: createPkceS256Challenge(generatePkceVerifier()),
+      codeChallengeMethod: "S256",
+      subject: { id: "subject-1" },
+      consentAccepted: true,
+    });
+    expect(new URL(result.redirectTo).searchParams.get("error")).toBe("unsupported_response_type");
+  });
+
+  it("authenticates confidential clients before token exchange (RFC 6749 sections 2.3.1 and 3.2.1)", async () => {
+    const { issuer, config } = createIssuer();
+    const client = await issuer.registerClient({
+      redirect_uris: ["https://client.example/callback"],
+      token_endpoint_auth_method: "client_secret_post",
+      scope: "mcp:access",
+    });
+    expect(client.clientSecret).toBeTruthy();
+    const verifier = generatePkceVerifier();
+    const authorized = await issuer.authorize({
+      responseType: "code", clientId: client.clientId, redirectUri: client.metadata.redirect_uris[0]!,
+      scope: "mcp:access", resource: config.resource, codeChallenge: createPkceS256Challenge(verifier),
+      codeChallengeMethod: "S256", subject: { id: "subject-1" }, consentAccepted: true,
+    });
+    const code = new URL(authorized.redirectTo).searchParams.get("code")!;
+    const denied = await issuer.token({
+      grantType: "authorization_code", clientId: client.clientId, code,
+      redirectUri: client.metadata.redirect_uris[0], codeVerifier: verifier,
+    });
+    expect("body" in denied ? denied.body.error : undefined).toBe("invalid_client");
+    const allowed = await issuer.token({
+      grantType: "authorization_code", clientId: client.clientId, clientSecret: client.clientSecret,
+      code, redirectUri: client.metadata.redirect_uris[0], codeVerifier: verifier,
+    });
+    expect("access_token" in allowed).toBe(true);
   });
 
   it("rotates refresh tokens and detects reuse", async () => {
@@ -192,7 +240,7 @@ describe("@plasius/oauth2-issuer", () => {
     expect(revoked.authorized).toBe(false);
   });
 
-  it("supports DPoP-required mode as an explicit resource-server policy", async () => {
+  it("fails closed instead of advertising incomplete RFC 9449 DPoP validation", async () => {
     const storage = createInMemoryOAuth2Storage();
     const config = {
       issuer: "https://plasius.co.uk/api/oauth/mcp",
@@ -203,11 +251,9 @@ describe("@plasius/oauth2-issuer", () => {
       supportedScopes: ["mcp:access"],
       requireDpop: true,
     };
-    const issuer = createOAuth2Issuer(config, {
-      storage,
-      keyStore: createRsaKeyStore({ issuer: config.issuer, keyId: "kid-1" }),
-    });
-    expect(issuer.protectedResourceMetadata().dpop_bound_access_tokens_required).toBe(true);
+    expect(() => createOAuth2Issuer(config, {
+      storage, keyStore: createRsaKeyStore({ issuer: config.issuer, keyId: "kid-1" }),
+    })).toThrow(/DPoP validation is not implemented/);
   });
 
   it("rejects malformed, tampered, and invalid-audience JWTs", async () => {
@@ -236,6 +282,12 @@ describe("@plasius/oauth2-issuer", () => {
     ).rejects.toThrow(/Invalid JWT format/);
 
     const parts = token.split(".");
+    const wrongTypeHeader = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT", kid: "kid-1" })).toString("base64url");
+    await expect(
+      keyStore.verifyJwt(`${wrongTypeHeader}.${parts[1]}.${parts[2]}`, {
+        issuer: "https://plasius.co.uk/api/oauth/mcp", audience: "https://plasius.co.uk/api/mcp", nowEpochSeconds: now,
+      }),
+    ).rejects.toThrow(/Unsupported JWT header/);
     const tamperedHeader = Buffer.from(JSON.stringify({ alg: "none", kid: "kid-1" })).toString("base64url");
     await expect(
       keyStore.verifyJwt(`${tamperedHeader}.${parts[1]}.${parts[2]}`, {

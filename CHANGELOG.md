@@ -6,10 +6,14 @@
   - (placeholder)
 
 - **Changed**
-  - (placeholder)
+  - Access-token JWTs now use and require RFC 9068 `typ: at+jwt`.
+  - DPoP-required configuration now fails closed instead of advertising an
+    incomplete RFC 9449 implementation.
 
 - **Fixed**
-  - (placeholder)
+  - Confidential clients must authenticate before token exchange, and
+    unsupported authorization response types now return
+    `unsupported_response_type`.
 
 - **Security**
   - (placeholder)

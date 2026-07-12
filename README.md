@@ -35,8 +35,21 @@ The engine denies by default:
 - revoked access-token JTIs
 - unsigned or unsupported JWTs
 
-DPoP is supported as an optional resource-server profile. It is not mandatory
-for ChatGPT v1 unless connector compatibility requires it.
+Access-token JWTs are emitted and accepted only with `typ: at+jwt` (RFC 9068
+§§2.1 and 4). Confidential clients are authenticated before authorization-code
+or refresh-token exchange (RFC 6749 §§2.3.1 and 3.2.1).
+
+`requireDpop: true` currently fails closed. The package does not advertise DPoP
+because a presence check is not RFC 9449 proof validation; consumers must not
+enable the mode until signature, method/URI, freshness, nonce/replay, `ath`, and
+key-binding verification are implemented and released.
+
+Runtime-visible rollout inherits
+`governance.rfc-compliance-remediation.enabled`. Enabled consumers require the
+correct token type and confidential-client credential. During a documented
+migration window, disabling the flag may retain the prior verifier; rollback
+also restores the prior package while existing short-lived tokens expire. DPoP
+has no permissive fallback.
 
 ## Development
 

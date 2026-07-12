@@ -7,6 +7,7 @@ import {
   generateKeyPairSync,
   randomBytes,
   randomUUID,
+  timingSafeEqual,
   type KeyObject,
 } from "node:crypto";
 import {
@@ -145,6 +146,8 @@ export interface OAuth2AuthorizeInput {
 export interface OAuth2TokenInput {
   grantType: string;
   clientId: string;
+  /** Parsed credential supplied by the HTTP adapter for confidential clients. */
+  clientSecret?: string;
   code?: string;
   redirectUri?: string;
   codeVerifier?: string;
@@ -227,6 +230,15 @@ function buildClientSecretHash(secret: string): string {
   return base64UrlEncode(createHash("sha256").update(secret).digest());
 }
 
+function clientSecretMatches(client: OAuth2RegisteredClient, suppliedSecret: string | undefined): boolean {
+  const method = client.metadata.token_endpoint_auth_method ?? "none";
+  if (method === "none") return true;
+  if (!client.clientSecretHash || !suppliedSecret) return false;
+  const expected = Buffer.from(client.clientSecretHash);
+  const actual = Buffer.from(buildClientSecretHash(suppliedSecret));
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
 function isRegisteredRedirect(client: OAuth2RegisteredClient, redirectUri: string): boolean {
   return client.metadata.redirect_uris.includes(redirectUri);
 }
@@ -246,6 +258,9 @@ function appendAuthorizationCode(redirectUri: string, code: string, state?: stri
 }
 
 export function createOAuth2Issuer(config: OAuth2IssuerConfig, ports: OAuth2IssuerPorts) {
+  if (config.requireDpop) {
+    throw new Error("DPoP validation is not implemented; refusing to advertise incomplete RFC 9449 support.");
+  }
   const clock = ports.clock ?? (() => new Date());
   const randomId = ports.randomId ?? secureId;
   const accessTokenTtlSeconds = config.accessTokenTtlSeconds ?? DEFAULT_ACCESS_TTL_SECONDS;
@@ -300,7 +315,13 @@ export function createOAuth2Issuer(config: OAuth2IssuerConfig, ports: OAuth2Issu
       throw oauthError("invalid_request", "Invalid redirect_uri.");
     }
     if (input.responseType !== "code") {
-      return { redirectTo: appendRedirectError(input.redirectUri, "unsupported_grant_type", input.state) };
+      return {
+        redirectTo: appendRedirectError(
+          input.redirectUri,
+          "unsupported_response_type" as OAuth2ErrorCode,
+          input.state,
+        ),
+      };
     }
     if (input.codeChallengeMethod !== "S256" || !input.codeChallenge) {
       return { redirectTo: appendRedirectError(input.redirectUri, "invalid_request", input.state) };
@@ -381,6 +402,9 @@ export function createOAuth2Issuer(config: OAuth2IssuerConfig, ports: OAuth2Issu
       const client = await ports.storage.getClient(input.clientId);
       if (!client) {
         throw oauthError("invalid_client", "Unknown OAuth client.");
+      }
+      if (!clientSecretMatches(client, input.clientSecret)) {
+        throw oauthError("invalid_client", "Client authentication failed.");
       }
       if (input.grantType === "authorization_code") {
         if (!input.code || !input.redirectUri || !input.codeVerifier) {
@@ -517,9 +541,6 @@ export function createOAuth2Issuer(config: OAuth2IssuerConfig, ports: OAuth2Issu
       if (await ports.storage.isAccessTokenJtiRevoked(claims.jti)) {
         return challenge("invalid_token", "revoked-access-token");
       }
-      if (config.requireDpop && (!claims.cnf?.jkt || !input.dpopProof)) {
-        return challenge("invalid_token", "missing-dpop-proof");
-      }
       if (input.requiredScopes?.length && !scopesContainAll(claims.scope ?? "", input.requiredScopes)) {
         return challenge("insufficient_scope", "insufficient-scope", 403);
       }
@@ -543,7 +564,6 @@ export function createOAuth2Issuer(config: OAuth2IssuerConfig, ports: OAuth2Issu
       registrationEndpoint: config.registrationEndpoint,
       revocationEndpoint: config.revocationEndpoint,
       scopesSupported: config.supportedScopes,
-      dpopSigningAlgValuesSupported: config.requireDpop ? ["ES256", "RS256"] : undefined,
     });
   }
 
@@ -554,8 +574,6 @@ export function createOAuth2Issuer(config: OAuth2IssuerConfig, ports: OAuth2Issu
       jwksUri: config.jwksUri,
       scopesSupported: config.supportedScopes,
       resourceName: "Plasius MCP",
-      dpopSigningAlgValuesSupported: config.requireDpop ? ["ES256", "RS256"] : undefined,
-      dpopBoundAccessTokensRequired: config.requireDpop,
     });
   }
 
@@ -650,7 +668,7 @@ export function createRsaKeyStore(options: {
       };
     },
     async signJwt(claims) {
-      const header = { alg: "RS256", typ: "JWT", kid };
+      const header = { alg: "RS256", typ: "at+jwt", kid };
       const signingInput = `${encodeJson(header)}.${encodeJson(claims)}`;
       const signature = createSign("RSA-SHA256").update(signingInput).sign(privateKey);
       return `${signingInput}.${base64UrlEncode(signature)}`;
@@ -661,7 +679,7 @@ export function createRsaKeyStore(options: {
         throw new Error("Invalid JWT format.");
       }
       const header = decodeJsonSegment(encodedHeader);
-      if (header.alg !== "RS256" || header.kid !== kid) {
+      if (header.alg !== "RS256" || header.kid !== kid || header.typ !== "at+jwt") {
         throw new Error("Unsupported JWT header.");
       }
       const signature = Buffer.from(
