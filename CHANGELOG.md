@@ -6,6 +6,20 @@
   - (placeholder)
 
 - **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.2] - 2026-07-13
+
+- **Added**
+  - (placeholder)
+
+- **Changed**
   - Raised the minimum `@plasius/oauth2-core` dependency to `^0.1.1` so fresh
     installs and retained lockfiles consume the RFC-remediated core release for
     task `#4`.
@@ -41,3 +55,4 @@
 
 [0.1.0]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.0
 [0.1.1]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.1
+[0.1.2]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.2

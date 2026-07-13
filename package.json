@@ -1,6 +1,6 @@
 {
   "name": "@plasius/oauth2-issuer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Zero-trust OAuth 2.1 authorization-server and resource-server engine with injected persistence and key-management ports.",
   "type": "module",
   "sideEffects": false,
