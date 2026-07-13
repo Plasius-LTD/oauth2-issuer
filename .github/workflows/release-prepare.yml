@@ -475,10 +475,7 @@ jobs:
             fi
           fi
 
-          COMMIT_SHA=$(git log -n 1 --format=%H -- "${PACKAGE_JSON}")
-          if [ -z "${COMMIT_SHA}" ]; then
-            COMMIT_SHA=$(git rev-parse HEAD)
-          fi
+          COMMIT_SHA=$(git rev-parse HEAD)
           {
             echo "name=${NAME}"
             echo "version=${TARGET_VER}"
