@@ -6,7 +6,9 @@
   - (placeholder)
 
 - **Changed**
-  - (placeholder)
+  - Raised the minimum `@plasius/oauth2-core` dependency to `^0.1.1` so fresh
+    installs and retained lockfiles consume the RFC-remediated core release for
+    task `#4`.
 
 - **Fixed**
   - (placeholder)
