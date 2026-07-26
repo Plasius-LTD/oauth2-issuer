@@ -12,6 +12,8 @@
   - (placeholder)
 
 - **Security**
+  - Added fail-closed source and npm-package admission for the administrative contributor registry and pinned the CI/CD runtime to Node.js 24.18.0 LTS.
+  - Pinned patched transitive build-tool dependencies for the current npm audit advisories.
   - (placeholder)
 
 ## [0.1.2] - 2026-07-13
