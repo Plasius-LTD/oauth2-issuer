@@ -9,6 +9,20 @@
   - (placeholder)
 
 - **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.9] - 2026-10-21
+
+- **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
   - Restore approved self-hosted, trusted-push-only CI with explicit runner-group
     admission, bounded jobs, clean installs, non-persistent credentials and final
     package checks; retain hosted production OIDC publication and exact-SHA gates.
@@ -169,3 +183,4 @@
 [0.1.6]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.6
 [0.1.7]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.7
 [0.1.8]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.8
+[0.1.9]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.9
