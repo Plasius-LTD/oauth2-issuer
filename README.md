@@ -69,11 +69,40 @@ Apache-2.0
 ## Release integrity
 
 CI keeps the administrative contributor registry outside Git and npm package
-artifacts using exact, case-normalised path checks. CI runs on approved
-GitHub-hosted runners for same-repository pull requests and `main`, with
-package-manager cache finalization disabled; fork PR code is denied.
+artifacts using exact, case-normalised path checks. CI runs only for repository branch pushes on the approved
+`Public CI - Quarantined` runner group with explicit `[self-hosted, Linux, X64]`
+labels. Both jobs require the canonical repository and a push event. Pull-request
+and manual triggers are absent, so external-fork code cannot reach this capacity.
+Checkouts do not persist credentials, package-manager caching is disabled, and
+both jobs have bounded timeouts. There is no hosted CI fallback or caller-selected
+runner. CI retains clean lockfile installation, lint, type checks, runtime audit,
+build, the 80% line-coverage gate, and final package-manifest admission.
 Publication uses the GitHub-hosted `production` job with Node 24 and a pinned
 npm 11.6.2 client. It is token-free and proceeds only while the prepared SHA
 is the exact `main` head after successful push-triggered CI. Do not dispatch CD
 until the npm trusted-publisher binding is verified.
+
+Before pushing a reviewed source branch, an authorised runner-group operator must
+admit only `Plasius-LTD/oauth2-issuer/.github/workflows/ci.yml@refs/heads/<branch>`
+to the existing workflow allowlist. Preserve the group's selected repositories,
+public-repository policy and all other admitted refs. `main` remains admitted.
+Inspect the release-preparation App's generated metadata PR and exact diff before
+admitting its exact branch; run its CI and required reviews/checks before merging
+when the repository policy holds the PR open. The existing release workflow may
+auto-merge metadata immediately under a policy with no required checks. In that
+case, verify the exact merged metadata diff and successful metadata/main CI before
+publication; do not describe that as a protected review gate. If the App deleted
+the branch, restoring only its reviewed, unchanged PR-head SHA with an ordinary
+non-force push to the same absent branch allows the queued CI to run. Remove
+temporary source/metadata admissions and branches after successful checks.
+Missing runner access is a blocker; do not broaden admission with wildcards or
+change repository/production protections to make a release pass.
+
+`platform.public-artifact-integrity.enabled` controls staged distribution
+restoration through the remote backend evaluator. All source, artifact and release
+checks remain mandatory whether enabled, disabled or rolled back. Disabling the
+flag stops restoration; it never bypasses admission. Operational rollback disables
+the affected workflow/channel and removes temporary branch admissions, without
+restoring the administrative path or introducing hosted CI. No capability is
+needed because there is no user-visible entitlement surface.
 <!-- END PLASIUS RELEASE INTEGRITY -->
