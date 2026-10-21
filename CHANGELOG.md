@@ -9,7 +9,9 @@
   - (placeholder)
 
 - **Fixed**
-  - (placeholder)
+  - Restore approved self-hosted, trusted-push-only CI with explicit runner-group
+    admission, bounded jobs, clean installs, non-persistent credentials and final
+    package checks; retain hosted production OIDC publication and exact-SHA gates.
 
 - **Security**
   - (placeholder)
