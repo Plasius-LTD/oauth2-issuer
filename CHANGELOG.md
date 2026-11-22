@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **Added**
+  - (placeholder)
+
+- **Changed**
+  - (placeholder)
+
+- **Fixed**
+  - (placeholder)
+
+- **Security**
+  - (placeholder)
+
+## [0.1.10] - 2026-11-22
+
 - Refresh supported npm dependency and security tooling baselines; preserve runtime API contracts (weekly maintenance, 2026-11-22).
 
 - Refresh npm dependency lockfile to current supported stable versions (weekly maintenance, 2026-10-25). Refresh published Plasius package baselines after upstream releases.
@@ -188,3 +202,4 @@
 [0.1.7]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.7
 [0.1.8]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.8
 [0.1.9]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.9
+[0.1.10]: https://github.com/Plasius-LTD/oauth2-issuer/releases/tag/v0.1.10
